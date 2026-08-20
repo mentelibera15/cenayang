@@ -8,29 +8,33 @@ import io
 import csv
 from dotenv import load_dotenv
 
-# Load env buat jaga-jaga kalau lo mau ngerun lokal lagi
 load_dotenv()
 
 def get_db_connection():
-    # Coba ambil dari secrets Streamlit dulu, kalau gagal baru cari di .env lokal
+    # Ambil dari Streamlit Secrets atau .env lokal
     try:
         db_url = st.secrets["DATABASE_URL"]
     except Exception:
         db_url = os.getenv("DATABASE_URL")
         
     if not db_url:
-        raise ValueError("Woy! DATABASE_URL lo kosong. Pastikan lo udah nulis di menu Secrets Streamlit!")
+        raise ValueError("Woy! DATABASE_URL lo kosong. Cek menu Secrets di Streamlit!")
         
-    try:
-        # Tambahkan opsi sslmode=require buat nembus keamanan Supabase
+    # Perbaikan otomatis format postgres:// jadi postgresql:// agar diterima psycopg2
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+        
+    # Pastikan parameter sslmode ada untuk keamanan Supabase cloud
+    if "sslmode" not in db_url:
         if "?" in db_url:
             db_url += "&sslmode=require"
         else:
             db_url += "?sslmode=require"
             
+    try:
         return psycopg2.connect(db_url)
-    except psycopg2.OperationalError as e:
-        print(f"KONEKSI SUPABASE GAGAL TOTAL! Baca nih alasan aslinya: {e}")
+    except Exception as e:
+        print(f"Koneksi Supabase Gagal: {e}")
         raise e
 
 def init_db():
