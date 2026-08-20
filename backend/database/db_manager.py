@@ -3,21 +3,34 @@ import json
 from datetime import datetime
 import bcrypt
 import psycopg2
-from dotenv import load_dotenv
+import streamlit as st
 import io
 import csv
+from dotenv import load_dotenv
 
-# Tarik URL dari file .env (lokal) atau Secrets (Cloud)
+# Load env buat jaga-jaga kalau lo mau ngerun lokal lagi
 load_dotenv()
-DB_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
-    if not DB_URL:
-        raise ValueError("Woy! DATABASE_URL lo kosong. Lo lupa nulis di Secrets Streamlit atau typo nama variabelnya!")
+    # Coba ambil dari secrets Streamlit dulu, kalau gagal baru cari di .env lokal
     try:
-        return psycopg2.connect(DB_URL)
-    except Exception as e:
-        print(f"Koneksi ke Supabase gagal total: {e}")
+        db_url = st.secrets["DATABASE_URL"]
+    except Exception:
+        db_url = os.getenv("DATABASE_URL")
+        
+    if not db_url:
+        raise ValueError("Woy! DATABASE_URL lo kosong. Pastikan lo udah nulis di menu Secrets Streamlit!")
+        
+    try:
+        # Tambahkan opsi sslmode=require buat nembus keamanan Supabase
+        if "?" in db_url:
+            db_url += "&sslmode=require"
+        else:
+            db_url += "?sslmode=require"
+            
+        return psycopg2.connect(db_url)
+    except psycopg2.OperationalError as e:
+        print(f"KONEKSI SUPABASE GAGAL TOTAL! Baca nih alasan aslinya: {e}")
         raise e
 
 def init_db():
