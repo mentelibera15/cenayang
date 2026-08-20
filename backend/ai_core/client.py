@@ -2,12 +2,24 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load environment variables dari file .env
+# Fungsi ini cuma jalan kalau lo nge-run di laptop lokal
 load_dotenv()
 
+# Usaha pertama: Tarik dari OS / Environment Variables lokal
 api_key = os.getenv("OPENAI_API_KEY")
+
+# Usaha kedua: Jaring Pengaman Khusus Cloud Streamlit
 if not api_key:
-    raise ValueError("API Key OpenAI nggak ketemu! Lo udah isi file .env belum? Jangan males baca instruksi.")
+    try:
+        import streamlit as st
+        # Secara paksa narik data langsung dari brankas rahasia Streamlit
+        api_key = st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        pass
+
+# Kalau dua-duanya gagal, berarti lo yang salah masukin API Key di dashboard
+if not api_key:
+    raise ValueError("API Key OpenAI nggak ketemu! Cek file .env lokal atau menu Secrets di Streamlit Cloud!")
 
 # Inisialisasi client
 client = OpenAI(api_key=api_key)
