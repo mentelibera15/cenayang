@@ -7,17 +7,22 @@ from dotenv import load_dotenv
 import io
 import csv
 
-# Tarik URL dari file .env
+# Tarik URL dari file .env (lokal) atau Secrets (Cloud)
 load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
 
-def get_db_connection(): 
-    return psycopg2.connect(DB_URL)
+def get_db_connection():
+    if not DB_URL:
+        raise ValueError("Woy! DATABASE_URL lo kosong. Lo lupa nulis di Secrets Streamlit atau typo nama variabelnya!")
+    try:
+        return psycopg2.connect(DB_URL)
+    except Exception as e:
+        print(f"Koneksi ke Supabase gagal total: {e}")
+        raise e
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Sintaks Postgres: SERIAL bukan AUTOINCREMENT
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('superadmin', 'admin', 'user')))''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS rapor_paradigma (id SERIAL PRIMARY KEY, username TEXT NOT NULL, waktu_tes TEXT NOT NULL, log_aksi TEXT, hipotesis TEXT, paradigma_dominan TEXT, data_analisis TEXT, feedback_dosen TEXT, FOREIGN KEY(username) REFERENCES users(username))''')
     
@@ -25,7 +30,6 @@ def init_db():
     if not cursor.fetchone():
         salt = bcrypt.gensalt()
         hash_pwd = bcrypt.hashpw(b"mahardika", salt).decode('utf-8')
-        # Sintaks Postgres: Pakai %s bukan ?
         cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'superadmin')", ('galih', hash_pwd))
     conn.commit()
     conn.close()
@@ -74,7 +78,6 @@ def hapus_riwayat_user(username: str):
     conn.close()
     return affected > 0
 
-# FUNGSI BARU UNTUK WEB (Melempar data sebagai memory buffer, bukan simpan ke C:)
 def export_data_csv():
     try:
         conn = get_db_connection()
