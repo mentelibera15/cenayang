@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CENAYANG Web</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: white; text-align: center; padding: 50px; }
+        .box { background: #333; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
+        input, button { padding: 10px; margin: 10px; width: 80%; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>LOGIN CENAYANG</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Masuk</button>
+        <p id="pesan" style="color: yellow;"></p>
+    </div>
+
+    <script>
+        // Ini JavaScript (babu-nya HTML) buat ngirim data ke Python
+        async function login() {
+            const user = document.getElementById("username").value;
+            const pass = document.getElementById("password").value;
+            const pesan = document.getElementById("pesan");
+            
+            pesan.innerText = "Sabar, lagi dicek...";
+            
+            const respon = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            
+            const hasil = await respon.json();
+            if (hasil.success) {
+                pesan.style.color = "green";
+                pesan.innerText = "Login Berhasil, Tuan " + hasil.role + "!";
+                // Nanti di sini kita arahkan ke halaman dashboard
+            } else {
+                pesan.style.color = "red";
+                pesan.innerText = hasil.message;
+            }
+        }
+    </script>
+</body>
+</html>

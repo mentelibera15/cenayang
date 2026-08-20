@@ -1,0 +1,19 @@
+$gitignoreContent = @'
+# Environment & Secrets (HARAM NAIK KE GITHUB)
+.env
+.streamlit/
+*.db
+
+# Virtual Environment Python
+env/
+venv/
+__pycache__/
+*.pyc
+
+# OS Files
+.DS_Store
+Thumbs.db
+'@
+
+Set-Content -Path "G:\CENAYANG\.gitignore" -Value $gitignoreContent -Encoding UTF8
+Write-Host "[SISTEM] Tameng .gitignore udah aktif. API Key lo aman dari maling." -ForegroundColor Green
