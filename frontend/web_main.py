@@ -8,7 +8,7 @@ from PIL import Image
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from backend.main import (inisialisasi_sistem, proses_login, dapatkan_kasus_baru, 
                           tindakan_interaktif, evaluasi_mahasiswa, proses_meta_analisis,
-                          tarik_riwayat, tarik_semua_user, tarik_data_csv,
+                          tarik_riwayat, tarik_semua_user, export_excel, # export_excel adalah nama fungsi dari main.py lo sebelumnya
                           proses_register, proses_hijack, proses_hapus_akun, proses_ganti_sandi,
                           generate_laporan_visual)
 
@@ -18,7 +18,7 @@ inisialisasi_sistem()
 # ================= KONFIGURASI HALAMAN & CSS =================
 st.set_page_config(page_title="CENAYANG", page_icon="👁️", layout="wide")
 
-# CSS Injeksi untuk Tombol WA Mengambang
+# CSS Injeksi untuk Tombol WA Mengambang & Custom Chat
 st.markdown("""
     <style>
     .wa-float {
@@ -49,8 +49,9 @@ if "role" not in st.session_state: st.session_state.role = ""
 if "kasus_aktif" not in st.session_state: st.session_state.kasus_aktif = {}
 if "log_investigasi" not in st.session_state: st.session_state.log_investigasi = []
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
+if "input_aksi_sementara" not in st.session_state: st.session_state.input_aksi_sementara = "" # Buat nampung chat
 
-# ================= MODAL/POP-UP (Fitur Baru Streamlit) =================
+# ================= MODAL/POP-UP =================
 @st.dialog("Rapor Paradigma Visual", width="large")
 def tampilkan_rapor(rapor, path_gambar):
     st.markdown(f"### PARADIGMA DOMINAN: <span style='color:gold'>{rapor.get('Paradigma_Dominan', 'Unidentified').upper()}</span>", unsafe_allow_html=True)
@@ -60,7 +61,7 @@ def tampilkan_rapor(rapor, path_gambar):
         st.error("Grafik gagal dimuat.")
     st.markdown("#### Catatan Dosen AI:")
     st.info(rapor.get("Overall_Feedback", ""))
-    if st.button("Tutup & Kembali"):
+    if st.button("Tutup & Kembali ke Dashboard"):
         st.session_state.kasus_aktif = {}
         st.rerun()
 
@@ -73,6 +74,24 @@ def tampilkan_meta(data_meta, path_gambar):
         st.error("Grafik gagal dimuat.")
     st.markdown("#### Evaluasi Cara Berpikir Default Lo:")
     st.info(data_meta.get("Meta_Feedback", ""))
+
+# ================= CALLBACK FUNGSI CHAT =================
+def eksekusi_aksi_lapangan():
+    aksi = st.session_state.input_aksi_sementara
+    if not aksi: return
+    
+    # 1. Catat aksi user
+    st.session_state.log_investigasi.append(aksi)
+    st.session_state.chat_history.append({"role": "user", "text": aksi})
+    
+    # 2. Panggil AI untuk merespons
+    res = tindakan_interaktif(aksi, st.session_state.kasus_aktif)
+    is_clue = res.get('is_clue', False)
+    role_balasan = "clue" if is_clue else "npc"
+    st.session_state.chat_history.append({"role": role_balasan, "text": res.get('narasi', 'Hening.')})
+    
+    # 3. Bersihkan kolom input biar rapi
+    st.session_state.input_aksi_sementara = ""
 
 # ================= HALAMAN LOGIN =================
 if not st.session_state.logged_in:
@@ -149,16 +168,10 @@ else:
             
             with col_kanan:
                 st.markdown("**Tindakan Investigasi:**")
-                aksi = st.text_input("Ketik langkah yang kamu ambil...", key="input_aksi")
-                if st.button("Lakukan Aksi") and aksi:
-                    st.session_state.log_investigasi.append(aksi)
-                    st.session_state.chat_history.append({"role": "user", "text": aksi})
-                    with st.spinner("Menunggu reaksi lapangan..."):
-                        res = tindakan_interaktif(aksi, st.session_state.kasus_aktif)
-                        is_clue = res.get('is_clue', False)
-                        role_balasan = "clue" if is_clue else "npc"
-                        st.session_state.chat_history.append({"role": role_balasan, "text": res.get('narasi', 'Hening.')})
-                    st.rerun()
+                
+                # Menggunakan Callback biar input bersih otomatis setelah dienter/diklik
+                st.text_input("Ketik langkah yang kamu ambil...", key="input_aksi_sementara", on_change=eksekusi_aksi_lapangan)
+                st.button("Lakukan Aksi", on_click=eksekusi_aksi_lapangan)
                 
                 st.caption(f"Langkah tercatat: {len(st.session_state.log_investigasi)}")
                 st.divider()
@@ -194,7 +207,7 @@ else:
 
     # --- TAB 3: PENGATURAN ---
     with tabs[2]:
-        csv_data = tarik_data_csv()
+        csv_data = export_excel() # Panggil fungsi asli dari main.py lo
         if csv_data:
             st.download_button("Export Semua Rapor (CSV)", data=csv_data, file_name="Laporan_CENAYANG.csv", mime="text/csv", type="primary")
         else:
