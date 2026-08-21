@@ -18,7 +18,6 @@ def proses_ganti_sandi(init_user, target, new_pwd): return change_user_password(
 def tarik_semua_user(): return get_semua_user()
 def tarik_riwayat(username): return get_riwayat_user(username)
 def hapus_riwayat(username): return hapus_riwayat_user(username)
-from backend.database.db_manager import export_data_csv
 def tarik_data_csv(): return export_data_csv()
 
 # --- Fitur Gameplay AI ---
@@ -48,4 +47,3 @@ def generate_laporan_visual(daftar_paradigma, username):
 
 if __name__ == "__main__":
     inisialisasi_sistem()
-
